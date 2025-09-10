@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>メモアプリ (シンプル版)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 12px; }
+    h1 { margin-bottom: 8px; }
+    form { display: grid; gap: 8px; margin: 16px 0; }
+    input, textarea, button { padding: 8px; font-size: 14px; }
+    ul { list-style: none; padding: 0; }
+    li { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 8px 0; }
+    .meta { color: #666; font-size: 12px; margin-top: 4px; }
+    .row { display:flex; gap:8px; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <h1>📝 メモアプリ（超シンプル）</h1>
+
+  <section>
+    <h2>新規メモ</h2>
+    <form id="create-form">
+      <input id="title" placeholder="タイトル（必須）" required />
+      <textarea id="content" rows="3" placeholder="本文（任意）"></textarea>
+      <button type="submit">追加</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>メモ一覧</h2>
+    <ul id="list"></ul>
+  </section>
+
+<template id="item-tpl">
+  <li>
+    <!-- 表示モード -->
+    <div class="view">
+      <strong class="title"></strong>
+      <div class="content"></div>
+      <div class="meta"></div>
+      <div class="row">
+        <button class="edit">編集</button>
+        <button class="delete">削除</button>
+      </div>
+    </div>
+
+    <!-- 編集モード（最初は非表示） -->
+    <form class="edit-form" style="display:none; gap:8px; margin-top:8px;">
+      <input class="edit-title" placeholder="タイトル" />
+      <textarea class="edit-content" rows="3" placeholder="本文"></textarea>
+      <div class="row">
+        <button type="submit" class="save">保存</button>
+        <button type="button" class="cancel">キャンセル</button>
+      </div>
+    </form>
+  </li>
+</template>
+
+
+  <script>
+    const $  = (s, el=document) => el.querySelector(s);
+
+    // 一覧取得 → レンダリング
+    async function fetchNotes() {
+      const res = await fetch('/api/notes');            // 同じオリジンなのでCORS不要
+      const notes = await res.json();
+      render(notes);
+    }
+
+function render(notes) {
+  const list = $('#list');
+  list.innerHTML = '';
+  for (const n of notes) {
+    const li = document.importNode($('#item-tpl').content, true);
+
+    // 表示パーツ
+    const view = li.querySelector('.view');
+    li.querySelector('.title').textContent   = n.title;
+    li.querySelector('.content').textContent = n.content || '';
+    li.querySelector('.meta').textContent    = `#${n.id}  作成:${n.createdAt}  更新:${n.updatedAt}`;
+
+    // 編集パーツ
+    const form = li.querySelector('.edit-form');
+    const titleInput = li.querySelector('.edit-title');
+    const contentInput = li.querySelector('.edit-content');
+
+    // 編集開始（表示→編集に切替）
+    li.querySelector('.edit').addEventListener('click', () => {
+      titleInput.value = n.title;
+      contentInput.value = n.content || '';
+      view.style.display = 'none';
+      form.style.display = 'grid';
+    });
+
+    // キャンセル（編集→表示に戻す）
+    li.querySelector('.cancel').addEventListener('click', () => {
+      form.style.display = 'none';
+      view.style.display = '';
+    });
+
+    // 保存（PUT）
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newTitle = titleInput.value.trim();
+      const newContent = contentInput.value.trim();
+      if (!newTitle) return alert('タイトルは必須です');
+
+      const res = await fetch(`/api/notes/${n.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle, content: newContent })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert('更新に失敗: ' + (err.error || res.status));
+        return;
+      }
+      fetchNotes(); // 再描画（編集フォームは消えて最新表示に）
+    });
+
+    // 既存：削除ボタン
+    li.querySelector('.delete').addEventListener('click', async () => {
+      const ok = confirm(`本当に削除しますか？ (id: ${n.id})`);
+      if (!ok) return;
+      await fetch(`/api/notes/${n.id}`, { method: 'DELETE' });
+      fetchNotes();
+    });
+
+    list.appendChild(li);
+  }
+}
+
+
+
+
+    // 作成フォーム
+    $('#create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title   = $('#title').value.trim();
+      const content = $('#content').value.trim();
+      if (!title) return alert('タイトルは必須です');
+      await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+      // 入力リセット & 再取得
+      $('#title').value = '';
+      $('#content').value = '';
+      fetchNotes();
+    });
+
+    // 初回ロード
+    fetchNotes();
+  </script>
+</body>
+</html>

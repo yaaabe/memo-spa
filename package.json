@@ -1,0 +1,8 @@
+{
+  "name": "memo-spa-root",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix client ci && npm --prefix client run build && npm --prefix api ci",
+    "start": "node api/server.js"
+  }
+}
