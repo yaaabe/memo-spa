@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 
 // 日付表示を整える小ヘルパ
 function format(ts) {
-  try { return new Date(ts).toLocaleString('ja-JP') }
-  catch { return ts }
+  try {
+    return new Date(ts).toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return ts;
+  }
 }
 
 // 1件分の表示＋編集＋削除コンポーネント
@@ -68,7 +77,8 @@ function NoteItem({ note, onChanged }) {
           </div>
         </div>
         <div style={styles.meta}>
-          #{note.id}　作成: {format(note.created_at ?? note.createdAt)}　更新: {format(note.updated_at ?? note.updatedAt)}
+          #{note.id}　作成: {format(note.created_at ?? note.createdAt)}　
+          更新: {format(note.updated_at ?? note.updatedAt)}
         </div>
       </li>
     )
@@ -79,7 +89,8 @@ function NoteItem({ note, onChanged }) {
       <strong style={{ fontSize: 16 }}>{note.title}</strong>
       {note.content && <div style={{ marginTop: 6, whiteSpace: 'pre-wrap' }}>{note.content}</div>}
       <div style={styles.meta}>
-        #{note.id}　作成: {format(note.created_at ?? note.createdAt)}　更新: {format(note.updated_at ?? note.updatedAt)}
+        #{note.id}　作成: {format(note.created_at ?? note.createdAt)}　
+        更新: {format(note.updated_at ?? note.updatedAt)}
       </div>
       <div style={styles.row}>
         <button onClick={() => setEditing(true)} style={styles.button}>編集</button>
@@ -187,6 +198,7 @@ export default function App() {
 
 // ざっくりスタイル
 const styles = {
+  body: {  maxWidth: 900 },
   main: { fontFamily: 'system-ui, sans-serif', maxWidth: 900, margin: '24px auto', padding: '0 12px' },
   section: { marginTop: 16 },
   input: { padding: 8, fontSize: 14 },

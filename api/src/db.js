@@ -17,12 +17,26 @@ const pool = new Pool({
 // });
 
 async function allNotes() {
-  const { rows } = await pool.query('SELECT * FROM notes ORDER BY id DESC');
+  const { rows } = await pool.query(`
+    SELECT
+      id, title, content,
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    FROM notes
+    ORDER BY id DESC
+  `);
   return rows;
 }
 
 async function getNote(id) {
-  const { rows } = await pool.query('SELECT * FROM notes WHERE id = $1', [id]);
+  const { rows } = await pool.query(`
+    SELECT
+      id, title, content,
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    FROM notes
+    WHERE id = $1
+  `, [id]);
   return rows[0] || null;
 }
 
@@ -43,13 +57,15 @@ async function updateNote(id, fields) {
   const newTitle   = typeof fields.title === 'string'   ? fields.title   : current.title;
   const newContent = typeof fields.content === 'string' ? fields.content : current.content;
 
-  const { rows } = await pool.query(
-    `UPDATE notes
+  const { rows } = await pool.query(`
+    UPDATE notes
        SET title = $1, content = $2, updated_at = NOW()
      WHERE id = $3
-     RETURNING *`,
-    [newTitle, newContent, id]
-  );
+     RETURNING
+       id, title, content,
+       created_at AS "createdAt",
+       updated_at AS "updatedAt"
+  `, [newTitle, newContent, id]);
   return rows[0] || null;
 }
 
